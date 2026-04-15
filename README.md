@@ -22,13 +22,13 @@ A Python library implementing the CDE framework from Pun & Zhu (2024), which sol
 ## Installation
 
 ```bash
-pip install cde-estimator
+pip install git+https://github.com/zhudechuan/cde-estimator.git
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/dechuan-zhu/cde-estimator.git
+git clone https://github.com/zhudechuan/cde-estimator.git
 cd cde-estimator
 pip install -e ".[dev]"
 ```
