@@ -10,7 +10,7 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
-    {name = "Dechuan Zhu"},
+    {name = "zhudechuan"},
     {name = "Chi Seng Pun"},
 ]
 keywords = [
@@ -48,10 +48,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/dechuan-zhu/cde-estimator"
-Documentation = "https://github.com/dechuan-zhu/cde-estimator#readme"
-Repository = "https://github.com/dechuan-zhu/cde-estimator"
-Issues = "https://github.com/dechuan-zhu/cde-estimator/issues"
+Homepage = "https://github.com/zhudechuan/cde-estimator"
+Documentation = "https://github.com/zhudechuan/cde-estimator#readme"
+Repository = "https://github.com/zhudechuan/cde-estimator"
+Issues = "https://github.com/zhudechuan/cde-estimator/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -24,7 +24,7 @@ git init
 git add .
 git commit -m "Initial release v0.1.0"
 git branch -M main
-git remote add origin https://github.com/dechuan-zhu/cde-estimator.git
+git remote add origin https://github.com/zhudechuan/cde-estimator.git
 git push -u origin main
 ```
 
@@ -48,7 +48,7 @@ This lets GitHub Actions publish to PyPI without storing API tokens as secrets. 
 2. Go to **Account Settings** → **Publishing** → **Add a new pending publisher**
 3. Fill in:
    - PyPI project name: `cde-estimator`
-   - Owner: `dechuan-zhu`
+   - Owner: `zhudechuan`
    - Repository name: `cde-estimator`
    - Workflow name: `publish.yml`
    - Environment name: `pypi`
