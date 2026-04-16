@@ -154,8 +154,10 @@ def find_lambda_max(
 
     # Primal feasibility + complementarity (big-M)
     for row in range(k):
-        mdl.add_constraint(mdl.dot(w, A[row]) <= b[row])
-        mdl.add_constraint(mdl.dot(w, A[row]) - b[row] <= big_M * y[row])
+        aw = mdl.dot(w, A[row])
+        mdl.add_constraint(aw <= b[row])
+        mdl.add_constraint(aw - b[row] <= big_M * y[row])
+        mdl.add_constraint(b[row] - aw <= big_M * y[row])
         mdl.add_constraint(gamma_h[row] <= big_M * (1 - y[row]))
 
     for row in range(l):
@@ -272,8 +274,10 @@ def solve_cde(
 
     # Primal feasibility + complementarity
     for row in range(k):
-        mdl.add_constraint(mdl.dot(w, A[row]) <= b[row])
-        mdl.add_constraint(mdl.dot(w, A[row]) - b[row] <= big_M * y[row])
+        aw = mdl.dot(w, A[row])
+        mdl.add_constraint(aw <= b[row])
+        mdl.add_constraint(aw - b[row] <= big_M * y[row])
+        mdl.add_constraint(b[row] - aw <= big_M * y[row])
         mdl.add_constraint(gamma_h[row] <= big_M * (1 - y[row]))
 
     for row in range(l):
@@ -616,6 +620,7 @@ def solve_self_calibrated_cde(
         aw = mdl.dot(w_plus - w_minus, A[row])
         mdl.add_constraint(aw <= b[row])
         mdl.add_constraint(aw - b[row] <= big_M * y_bin[row])
+        mdl.add_constraint(b[row] - aw <= big_M * y_bin[row])
         mdl.add_constraint(gamma_h[row] <= big_M * (1 - y_bin[row]))
 
     for row in range(l):
