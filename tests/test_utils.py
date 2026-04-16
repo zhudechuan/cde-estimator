@@ -3,8 +3,8 @@
 import numpy as np
 import pytest
 
-from cde_estimator.utils import perturb_covariance, validate_dimensions
 from cde_estimator.exceptions import InputValidationError
+from cde_estimator.utils import perturb_covariance, validate_dimensions
 
 
 class TestPerturbCovariance:

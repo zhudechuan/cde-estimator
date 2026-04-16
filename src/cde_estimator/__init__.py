@@ -6,7 +6,8 @@ mixed-integer linear programming (MILP) or pure LP through IBM CPLEX.
 
 Modules
 -------
-- ``cde_estimator``: Portfolio selection with inequality constraints (MILP).
+- ``cde_estimator``: Portfolio selection with inequality constraints (MILP),
+  including the Self-Calibrated CDE (SC-CDE) with adaptive scale variable.
 - ``cde_estimator.precision``: Precision matrix estimation with equality
   constraints (LP) — see :class:`~cde_estimator.precision.PrecisionMatrixEstimator`.
 
@@ -31,20 +32,30 @@ from .constraints import (
     liquidity_constraint,
     volume_liquidity_constraint,
 )
-from .estimator import CDEEstimator, CDEResult
+from .estimator import CDEEstimator, CDEResult, SCCDEEstimator, SCCDEResult
 from .exceptions import CDEError, InfeasibleError, InputValidationError, SolverError
-from .solver import find_lambda_max, find_lambda_max_equality, solve_cde, solve_cde_equality
+from .solver import (
+    find_lambda_max,
+    find_lambda_max_equality,
+    solve_cde,
+    solve_cde_equality,
+    solve_self_calibrated_cde,
+)
 from .utils import perturb_covariance, validate_dimensions
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
-    # Estimator
+    # Estimator (standard CDE)
     "CDEEstimator",
     "CDEResult",
+    # Estimator (self-calibrated CDE)
+    "SCCDEEstimator",
+    "SCCDEResult",
     # Solver (inequality — MILP)
     "find_lambda_max",
     "solve_cde",
+    "solve_self_calibrated_cde",
     # Solver (equality — LP)
     "find_lambda_max_equality",
     "solve_cde_equality",

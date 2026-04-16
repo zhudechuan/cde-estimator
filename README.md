@@ -7,10 +7,11 @@ A Python library implementing the CDE framework from Pun & Zhu (2024), which sol
 ## Features
 
 - **CDE solver** with KKT-based MILP formulation and automatic lambda calibration
+- **Self-Calibrated CDE (SC-CDE)** — adaptive scale variable tau eliminates cross-validation; joint optimisation of `||beta||_1 + c * tau` with factor-rescaled stationarity
 - **Equality-only CDE solver** — pure LP for problems like precision matrix estimation (no binary variables, much faster)
 - **Precision matrix estimation** — dedicated `PrecisionMatrixEstimator` with symmetry constraints, Gaussian NLL scoring, and support recovery metrics
 - **Modular constraint system** — compose budget, liquidity, and exposure constraints or bring your own
-- **Cross-validation** for automatic tuning parameter selection
+- **Cross-validation** for CDE lambda selection; **grid search** over (lambda, c) for SC-CDE
 - **Clean API** with type hints, numpy-style docstrings, and proper error handling
 
 ## Requirements
@@ -66,6 +67,27 @@ print("L1 norm:", np.abs(result.weights).sum())
 result_cv = estimator.fit_cv(sigma, eta, constraints, returns)
 print("Best lambda:", result_cv.lambda_selected)
 print("CV scores:", result_cv.cv_scores)
+```
+
+## Self-Calibrated CDE
+
+The SC-CDE introduces an adaptive scale variable tau, jointly optimising
+`||beta||_1 + c * tau` subject to relaxed KKT stationarity. This avoids
+expensive cross-validation for lambda selection.
+
+```python
+from cde_estimator import SCCDEEstimator
+
+# Fit with a specific (lambda, c) pair
+estimator = SCCDEEstimator()
+result = estimator.fit(sigma, eta, constraints, lambda_value=90.0, c_const=3.0)
+print("Weights:", result.weights)
+print("Tau:", result.tau)
+
+# Grid search over (lambda, c) pairs
+result_grid = estimator.fit_grid(sigma, eta, constraints, returns)
+print("Best lambda:", result_grid.lambda_selected)
+print("Best c:", result_grid.c_selected)
 ```
 
 ## Constraint Builders
@@ -126,6 +148,14 @@ from cde_estimator import find_lambda_max, solve_cde
 
 lambda_max, factor = find_lambda_max(sigma, eta, p, A, b, k, C, d, l)
 w = solve_cde(sigma, eta, p, A, b, k, C, d, l, factor, lambda_scaled=90.0)
+
+# Self-Calibrated CDE (MILP with adaptive tau)
+from cde_estimator import solve_self_calibrated_cde
+
+w, tau = solve_self_calibrated_cde(
+    sigma, eta, p, A, b, k, C, d, l, factor,
+    lambda_scaled=90.0, c_const=3.0,
+)
 
 # Equality-only CDE (LP) — e.g., for precision matrix estimation
 from cde_estimator import find_lambda_max_equality, solve_cde_equality

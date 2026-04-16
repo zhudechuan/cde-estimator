@@ -36,8 +36,9 @@ Example
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -45,7 +46,7 @@ from numpy.typing import NDArray
 from sklearn.model_selection import KFold
 
 from .exceptions import InfeasibleError
-from .solver import find_lambda_max_equality, solve_cde_equality
+from .solver import solve_cde_equality
 
 logger = logging.getLogger(__name__)
 

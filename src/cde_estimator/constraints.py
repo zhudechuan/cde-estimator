@@ -8,7 +8,6 @@ Users can combine these or supply their own matrices directly.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -56,7 +55,7 @@ class LinearConstraints:
 
     def append_inequality(
         self, A_new: NDArray[np.float64], b_new: NDArray[np.float64]
-    ) -> "LinearConstraints":
+    ) -> LinearConstraints:
         """Return a new LinearConstraints with additional inequality rows.
 
         Parameters

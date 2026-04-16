@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from cde_estimator.constraints import (
-    LinearConstraints,
     budget_constraint,
     combine_constraints,
     gross_exposure_constraint,

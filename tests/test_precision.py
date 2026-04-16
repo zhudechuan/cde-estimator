@@ -7,9 +7,9 @@ from cde_estimator.precision import (
     frobenius_error,
     gaussian_nll,
     generate_sparse_covariance,
+    sigma_tilde,
     support_recovery_metrics,
     symmetry_constraint_matrix,
-    sigma_tilde,
     unvec,
     vec_identity,
 )

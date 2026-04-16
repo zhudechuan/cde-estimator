@@ -2,12 +2,14 @@
 
 This module implements the Constrained Dantzig-type Estimator (CDE) with
 general linear inequality constraints, solved as a mixed-integer linear
-program (MILP) via the KKT complementarity formulation.
+program (MILP) via the KKT complementarity formulation. It also provides
+the Self-Calibrated CDE (SC-CDE) extension that introduces an adaptive
+scale variable tau, eliminating the need for cross-validation.
 
 Reference
 ---------
-Pun, C. S. (2024). Constrained Dantzig-type Estimator with inequality
-constraints for high-dimensional sparse learning.
+Pun, C. S. & Zhu, D. (2024). Constrained Dantzig-type Estimator with
+inequality constraints for high-dimensional sparse learning.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from typing import Optional, Tuple
 import numpy as np
 from numpy.typing import NDArray
 
-from .exceptions import InfeasibleError, SolverError
+from .exceptions import InfeasibleError
 
 
 def _get_cplex_model():
@@ -483,3 +485,151 @@ def solve_cde_equality(
     result = np.array(sol.get_values(w))
     mdl.clear()
     return result
+
+
+def solve_self_calibrated_cde(
+    sigma: NDArray[np.float64],
+    eta: NDArray[np.float64],
+    p: int,
+    A: NDArray[np.float64],
+    b: NDArray[np.float64],
+    k: int,
+    C: NDArray[np.float64],
+    d: NDArray[np.float64],
+    l: int,
+    factor: float,
+    lambda_scaled: float,
+    c_const: float = 3.0,
+    big_M: float = 100.0,
+    time_limit: Optional[float] = None,
+) -> Tuple[NDArray[np.float64], float]:
+    """Solve the Self-Calibrated CDE with an adaptive scale variable.
+
+    The SC-CDE jointly estimates the coefficient vector beta and a scale
+    variable tau, making the tuning parameter lambda adaptive. This
+    eliminates the need for cross-validation by replacing the fixed
+    constraint with a penalised objective.
+
+    Formulation::
+
+        min  ||beta||_1 + c * tau
+        s.t. |factor * (Sigma beta - eta + A' gamma_h + C' gamma_g)| <= lam * tau
+             ||beta||_1 <= tau
+             tau >= 0
+             A beta <= b,  C beta = d
+             gamma_h >= 0
+             (A beta - b)' gamma_h = 0  (complementary slackness, via big-M)
+
+    Uses the same factor rescaling as the standard CDE solver. The
+    stationarity constraint in the MILP is::
+
+        |factor * (Sigma beta - eta + A' gamma + C' mu)| <= lam_scaled * tau
+
+    which is equivalent to raw-units formulation with lam_raw = lam_scaled / factor.
+
+    Parameters
+    ----------
+    sigma : ndarray of shape (p, p)
+        Sample covariance matrix.
+    eta : ndarray of shape (p,)
+        Sample mean return vector.
+    p : int
+        Problem dimension.
+    A : ndarray of shape (k, p)
+        Inequality constraint matrix (A beta <= b).
+    b : ndarray of shape (k,)
+        Inequality RHS.
+    k : int
+        Number of inequality constraints.
+    C : ndarray of shape (l, p)
+        Equality constraint matrix (C beta = d).
+    d : ndarray of shape (l,)
+        Equality RHS.
+    l : int
+        Number of equality constraints.
+    factor : float
+        Rescaling factor from ``find_lambda_max`` (maps lambda_max to 100).
+    lambda_scaled : float
+        Lambda in scaled units (same space as CDE's [60, 100] grid).
+    c_const : float, default=3.0
+        Penalty constant on the scale variable tau.
+    big_M : float, default=100.0
+        Big-M constant for complementarity linearisation.
+    time_limit : float, optional
+        Solver time limit in seconds.
+
+    Returns
+    -------
+    beta : ndarray of shape (p,)
+        Estimated coefficient vector.
+    tau : float
+        Estimated scale variable.
+
+    Raises
+    ------
+    InfeasibleError
+        If the MILP is infeasible.
+    """
+    Model = _get_cplex_model()
+    mdl = Model(name="sc_cde")
+    mdl.parameters.read.scale = -1
+    if time_limit is not None:
+        mdl.set_time_limit(time_limit)
+
+    # Decompose w = w_plus - w_minus for explicit l1 linearisation.
+    w_plus = np.array(
+        mdl.continuous_var_list([f"wp{i}" for i in range(p)], lb=0)
+    )
+    w_minus = np.array(
+        mdl.continuous_var_list([f"wm{i}" for i in range(p)], lb=0)
+    )
+    gamma_h = np.array(
+        mdl.continuous_var_list([f"gh{i}" for i in range(k)], lb=0)
+    )
+    gamma_g = np.array(
+        mdl.continuous_var_list([f"gg{i}" for i in range(l)], lb=-mdl.infinity)
+    )
+    y_bin = np.array(mdl.binary_var_list([f"y{i}" for i in range(k)]))
+    tau = mdl.continuous_var(name="tau", lb=0)
+
+    # l1 norm expression
+    l1_norm = mdl.sum(w_plus[i] + w_minus[i] for i in range(p))
+
+    # Objective: ||beta||_1 + c * tau
+    mdl.minimize(l1_norm + c_const * tau)
+
+    # Stationarity: |factor * (Sigma beta - eta + A' gamma_h + C' gamma_g)| <= lam * tau
+    for row in range(p):
+        kkt = factor * (
+            mdl.dot(w_plus - w_minus, sigma[row]) - eta[row]
+            + mdl.dot(gamma_h, A.T[row])
+            + mdl.dot(gamma_g, C.T[row])
+        )
+        mdl.add_constraint(kkt - lambda_scaled * tau <= 0)
+        mdl.add_constraint(kkt + lambda_scaled * tau >= 0)
+
+    # Scale constraint: ||beta||_1 <= tau
+    mdl.add_constraint(l1_norm <= tau)
+
+    # Primal feasibility + complementarity
+    for row in range(k):
+        aw = mdl.dot(w_plus - w_minus, A[row])
+        mdl.add_constraint(aw <= b[row])
+        mdl.add_constraint(aw - b[row] <= big_M * y_bin[row])
+        mdl.add_constraint(gamma_h[row] <= big_M * (1 - y_bin[row]))
+
+    for row in range(l):
+        mdl.add_constraint(mdl.dot(w_plus - w_minus, C[row]) == d[row])
+
+    # Solve
+    sol = mdl.solve()
+    if mdl.solve_status.value != 2:
+        mdl.clear()
+        raise InfeasibleError(
+            "sc_cde", f"lambda_scaled={lambda_scaled:.4f}, c={c_const:.1f}"
+        )
+
+    beta = np.array(sol.get_values(w_plus)) - np.array(sol.get_values(w_minus))
+    tau_val = sol.get_value(tau)
+    mdl.clear()
+    return beta, tau_val

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cde-estimator"
-version = "0.1.0"
+version = "0.2.0"
 description = "Constrained Dantzig-type Estimator for high-dimensional portfolio selection with inequality constraints"
 readme = "README.md"
 license = "MIT"
@@ -62,7 +62,15 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "D", "UP"]
-ignore = ["D100", "D104"]
+ignore = [
+    "D100", "D104",       # missing module/package docstrings
+    "D101", "D102",       # missing class/method docstrings
+    "D204", "D301",       # docstring formatting
+    "N802", "N803", "N806", # uppercase variable/argument names (math convention)
+    "E741", "E743",       # ambiguous variable names (l, I, O — common in math)
+    "E501",               # line too long (docstrings, math expressions)
+    "UP006", "UP035", "UP045", # typing deprecations — need Optional for Python 3.9 compat
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
